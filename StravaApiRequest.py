@@ -100,6 +100,7 @@ df = pd.DataFrame(activities_list)
 
 # Print the DataFrame
 #print(df.columns)
+#print(df['has_heartrate'])
 #print(df["name"], df["sport_type"], df["distance"])
 unique_values_and_count = df["sport_type"].value_counts(ascending=True) 
 sport_png_path = os.path.join(script_dir, 'sport_type.png')
@@ -120,4 +121,26 @@ if time.time() > client.token_expires_at:
     )
     access_token = refresh_response["access_token"]
     refresh_token = refresh_response["refresh_token"]
-    expires_at = refresh_response["expires_at"]
+
+# Get the most recent activity
+activities = client.get_activities(limit=1)
+most_recent_activity = next(activities)
+print(most_recent_activity.name)
+streams = client.get_activity_streams(most_recent_activity.id, types=["time", "heartrate", "cadence", "watts", "velocity_smooth"])
+df2 = pd.DataFrame({
+    'time': streams['time'].data,
+    'heartrate': streams['heartrate'].data,
+    'cadence': streams['cadence'].data,
+    'watts': streams['watts'].data,
+    'speed': streams['velocity_smooth'].data
+})
+
+# Plot the heart rate over time of most recent activity
+def
+    plt.clf()
+    plt.plot(df2['time'], df2['heartrate'])
+    plt.xlabel('Time (s)')
+    plt.ylabel('Heart rate (bpm)')
+    plt.title('Heart Rate Over Time for ' + most_recent_activity.name)
+    plt.savefig(os.path.join(script_dir, 'heartrate.png'))
+    print(df2)
