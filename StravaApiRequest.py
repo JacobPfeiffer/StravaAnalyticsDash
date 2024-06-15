@@ -127,20 +127,55 @@ activities = client.get_activities(limit=1)
 most_recent_activity = next(activities)
 print(most_recent_activity.name)
 streams = client.get_activity_streams(most_recent_activity.id, types=["time", "heartrate", "cadence", "watts", "velocity_smooth"])
-df2 = pd.DataFrame({
-    'time': streams['time'].data,
-    'heartrate': streams['heartrate'].data,
-    'cadence': streams['cadence'].data,
-    'watts': streams['watts'].data,
-    'speed': streams['velocity_smooth'].data
-})
 
+data ={key: streams[key].data for key in ['time', 'heartrate', 'cadence', 'watts', 'velocity_smooth'] if key in streams}
+df2 = pd.DataFrame(data)
 # Plot the heart rate over time of most recent activity
-def
+
+plt.clf()
+plt.plot(df2['time'], df2['heartrate'])
+plt.xlabel('Time (s)')
+plt.ylabel('Heart rate (bpm)')
+plt.title('Heart Rate Over Time for ' + most_recent_activity.name)
+plt.savefig(os.path.join(script_dir, 'heartrate.png'))
+print(df2)
+
+# funtion for plotting most recent activity data
+def quick_plot(df2, x, y, xlabel, ylabel, title, filename):
+    if x not in df2 or y not in df2:
+        return
+
     plt.clf()
-    plt.plot(df2['time'], df2['heartrate'])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Heart rate (bpm)')
-    plt.title('Heart Rate Over Time for ' + most_recent_activity.name)
-    plt.savefig(os.path.join(script_dir, 'heartrate.png'))
-    print(df2)
+    plt.plot(df2[x], df2[y])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title + most_recent_activity.name)
+    plt.savefig(os.path.join(script_dir, filename))
+
+
+quick_plot(df2, 'time', 'cadence', 'Time (s)', 'Cadence (rpm)', 'Cadence Over Time for ', 'cadence.png')
+quick_plot(df2, 'time', 'watts', 'Time (s)', 'watts', 'Watts Over Time for ', 'watts.png')
+quick_plot(df2, 'time', 'speed', 'Time (s)', 'speed(m/s)', 'Speed Over Time for ', 'speed.png')
+
+#function for pulling last # of activities by data type
+def get_avg_activity_data(activity_type, num_activities, data_type):
+    activities = client.get_activities()
+    selected_activities = []
+    activity_data = []
+
+    for activity in activities:
+        if activity_type in activity.type:
+            selected_activities.append(activity)
+            if len(selected_activities) == num_activities:   
+                break
+        
+    for activity in selected_activities:
+        streams = client.get_activity_streams(activity.id, types =[data_type])
+        if data_type in streams:
+            pulled_data = streams[data_type].data
+            average_data = sum(pulled_data)/len(pulled_data) if pulled_data else None
+            activity_data.append(average_data)
+    return activity_data
+
+run_heartrate_data = get_avg_activity_data("Ride", 10, 'heartrate')
+print(run_heartrate_data)
